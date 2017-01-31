@@ -3,27 +3,11 @@
   "description": "Brightspace Course Image Banner Overlay",
   "private": true,
   "scripts": {
-    "prebuild": "rimraf dist && mkdir dist",
-    "build": "cp d2l-*.html ./dist/",
     "postinstall": "bower install",
-    "publish:cdn": "npm run build -s && frau-publisher",
     "test": "npm run test:lint:js && npm run test:lint:wc && wct",
     "test:lint:js": "eslint --ext .js,.html .",
     "test:lint:wc": "polylint --no-recursion --input src/*.html",
     "test:no-lint": "wct -p"
-  },
-  "config": {
-    "frauPublisher": {
-      "files": "./dist/**",
-      "moduleType": "app",
-      "targetDirectory": "d2l-image-banner-overlay",
-      "creds": {
-        "key": "",
-        "secretVar": "CDN_SECRET"
-      },
-      "devTagVar": "TRAVIS_COMMIT",
-      "versionVar": "TRAVIS_TAG"
-    }
   },
   "homepage": "https://github.com/Brightspace/d2l-image-banner-overlay",
   "repository": {
@@ -46,7 +30,6 @@
     "eslint": "^2.4.0",
     "eslint-config-brightspace": "^0.2.1",
     "eslint-plugin-html": "^1.4.0",
-    "frau-publisher": "^2.5.3",
     "polylint": "^2.10.1",
     "rimraf": "^2.5.2",
     "web-component-tester": "^5.0.0"

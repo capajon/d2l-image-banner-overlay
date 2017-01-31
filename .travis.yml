@@ -12,9 +12,3 @@ before_script:
 - npm run test:lint:js
 script:
 - xvfb-run wct
-after_success:
-- '[ "$TRAVIS_SECURE_ENV_VARS" = "true" ] && [ "x$TRAVIS_TAG" != "x" ] && npm run publish:cdn'
-env:
-  global:
-    # CDN_SECRET
-    - secure:
