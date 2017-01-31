@@ -1,0 +1,20 @@
+language: node_js
+node_js:
+- 5
+sudo: false
+addons:
+  firefox: latest
+  apt:
+    packages:
+      - oracle-java8-installer
+      - oracle-java8-set-default
+before_script:
+- npm run test:lint:js
+script:
+- xvfb-run wct
+after_success:
+- '[ "$TRAVIS_SECURE_ENV_VARS" = "true" ] && [ "x$TRAVIS_TAG" != "x" ] && npm run publish:cdn'
+env:
+  global:
+    # CDN_SECRET
+    - secure:
