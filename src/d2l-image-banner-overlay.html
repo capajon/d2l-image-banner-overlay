@@ -1,4 +1,5 @@
 <link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../d2l-siren-parser/d2l-siren-parser.html">
 <link rel="import" href="../../d2l-typography/d2l-typography-shared-styles.html">
 
 <dom-module id="d2l-image-banner-overlay">
@@ -26,7 +27,36 @@
 		'use strict';
 		Polymer({
 			is: 'd2l-image-banner-overlay',
-			properties: {}
+			properties: {},
+			ready: function() {
+				var body = document.querySelector('body');
+				body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
+			},
+			_onSetCourseImage: function(e) {
+				if (e.detail.status === 'success' /* && e.detail.organization.href === this.orgUnitId */) {
+					if (e.detail.image) {
+						var image = document.createElement('d2l-siren-parser').parse(e.detail.image);
+						var imageLinks = this._getImageLinks(image, 'banner');
+						var imageSrc = imageLinks['highMax'] || imageLinks['lowMax'] || imageLinks['highMid'] || imageLinks['lowMid'];
+						var bannerImage = document.querySelector('.d2l-course-banner .d2l-course-banner-image');
+						if (bannerImage && imageSrc) {
+							bannerImage.src = imageSrc;
+							bannerImage.srcset = '';
+						}
+					}
+				}
+			},
+			// lifted from utility-behaviour, if we cut that out we can place it here
+			_getImageLinks: function(image, imageClass) {
+				var imageLinks = image.getLinksByClass(imageClass || 'tile'),
+					sizes = {};
+				imageLinks.forEach(function(link) {
+					var size = link.hasClass('min') && 'Min' || link.hasClass('mid') && 'Mid' || link.hasClass('max') && 'Max',
+						density = link.hasClass('high-density') ? 'high' : 'low';
+					sizes[density + size] = link.href;
+				});
+				return sizes;
+			}
 		});
 	</script>
 </dom-module>
