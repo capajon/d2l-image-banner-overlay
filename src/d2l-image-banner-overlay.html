@@ -1,10 +1,13 @@
 <link rel="import" href="../../polymer/polymer.html">
+<link rel="import" href="../../d2l-ajax/d2l-ajax.html">
+<link rel="import" href="../../d2l-colors/d2l-colors.html">
 <link rel="import" href="../../d2l-siren-parser/d2l-siren-parser.html">
+<link rel="import" href="../../d2l-typography/d2l-typography.html">
 <link rel="import" href="../../d2l-typography/d2l-typography-shared-styles.html">
 
 <dom-module id="d2l-image-banner-overlay">
 	<template>
-		<style include="d2l-typography-shared-styles">
+		<style include="d2l-typography d2l-typography-shared-styles">
 			:host {
 				position: absolute;
 				height: 100%;
@@ -12,12 +15,42 @@
 				top: 0;
 				left: 0;
 				z-index: 1;
+				@apply(--d2l-body-standard-text);
 			}
 
-			.d2l-image-banner-overlay {
+			.d2l-image-banner-overlay-content {
+				opacity: 0;
+				transition: opacity 2s;
 				width: 100%;
 				height: 100%;
 			}
+
+			.d2l-image-banner-overlay-content-shown {
+				animation-name: shown;
+				animation-duration: 0.5s;
+				animation-fill-mode: forwards;
+			}
+
+			@keyframes shown {
+				0% { opacity: 0 }
+				100% { opacity: 1; }
+			}
+
+			.d2l-image-banner-course-name {
+				width: 100%;
+				height: 100%;
+				background: linear-gradient(rgba(0, 0, 0, 0) 17.5%, black);
+			}
+
+			#courseName {
+				color: var(--d2l-color-white);
+				height: initial;
+				position: absolute;
+				bottom: 0;
+				padding: 0 30px;
+    			box-sizing: border-box;
+			}
+
 		</style>
 
 		<div class="d2l-image-banner-overlay">
@@ -27,10 +60,23 @@
 		'use strict';
 		Polymer({
 			is: 'd2l-image-banner-overlay',
-			properties: {},
+			properties: {
+				organizationUrl: String,
+				_courseName: String
+			},
 			ready: function() {
+				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 				var body = document.querySelector('body');
 				body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
+			},
+			_onOrganizationResponse: function(response) {
+				if (response.detail.status === 200) {
+					var parser = document.createElement('d2l-siren-parser');
+					var organization = parser.parse(response.detail.xhr.response);
+					if (organization && organization.properties) {
+						this._courseName = organization.properties.name;
+					}
+				}
 			},
 			_onSetCourseImage: function(e) {
 				if (e.detail.status === 'success' /* && e.detail.organization.href === this.orgUnitId */) {
