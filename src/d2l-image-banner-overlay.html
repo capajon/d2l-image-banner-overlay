@@ -50,10 +50,18 @@
 				padding: 0 30px;
     			box-sizing: border-box;
 			}
-
 		</style>
 
-		<div class="d2l-image-banner-overlay">
+		<d2l-ajax auto
+			url="[[organizationUrl]]"
+			headers='{ "Accept": "application/vnd.siren+json" }'
+			on-iron-ajax-response="_onOrganizationResponse">
+		</d2l-ajax>
+
+		<div id="overlayContent" class="d2l-image-banner-overlay-content d2l-typography">
+			<div class="d2l-image-banner-course-name">
+				<h1 id="courseName" class="d2l-heading-1">[[_courseName]]</h1>
+			</div>
 		</div>
 	</template>
 	<script>
@@ -62,34 +70,51 @@
 			is: 'd2l-image-banner-overlay',
 			properties: {
 				organizationUrl: String,
+				_parser: Object,
 				_courseName: String
 			},
+			_organization: Object,
 			ready: function() {
 				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
-				var body = document.querySelector('body');
-				body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
+				document.body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
 			},
 			_onOrganizationResponse: function(response) {
 				if (response.detail.status === 200) {
-					var parser = document.createElement('d2l-siren-parser');
-					var organization = parser.parse(response.detail.xhr.response);
-					if (organization && organization.properties) {
-						this._courseName = organization.properties.name;
+					this._createParser();
+					this._organization = this._parser.parse(response.detail.xhr.response);
+					if (this._organization && this._organization.properties) {
+						this._courseName = this._organization.properties.name;
 					}
 				}
 			},
 			_onSetCourseImage: function(e) {
-				if (e.detail.status === 'success' /* && e.detail.organization.href === this.orgUnitId */) {
-					if (e.detail.image) {
-						var image = document.createElement('d2l-siren-parser').parse(e.detail.image);
-						var imageLinks = this._getImageLinks(image, 'banner');
-						var imageSrc = imageLinks['highMax'] || imageLinks['lowMax'] || imageLinks['highMid'] || imageLinks['lowMid'];
-						var bannerImage = document.querySelector('.d2l-course-banner .d2l-course-banner-image');
-						if (bannerImage && imageSrc) {
-							bannerImage.src = imageSrc;
-							bannerImage.srcset = '';
-						}
+				this._createParser();
+				var org = this._parser.parse(e.detail.organization);
+
+				if (!org.getLinkByRel) {
+					return;
+				}
+
+				var orgSelfLink = (org.getLinkByRel('self') || {}).href || '',
+					urlPosition = orgSelfLink.indexOf(this.organizationUrl);
+
+				if (e.detail.status === 'success' &&
+					urlPosition === (orgSelfLink.length - this.organizationUrl.length) &&
+					e.detail.image
+				) {
+					var image = this._parser.parse(e.detail.image);
+					var imageLinks = this._getImageLinks(image, 'banner');
+					var imageSrc = imageLinks['highMax'] || imageLinks['lowMax'] || imageLinks['highMid'] || imageLinks['lowMid'];
+					var bannerImage = document.querySelector('.d2l-course-banner .d2l-course-banner-image');
+					if (bannerImage && imageSrc) {
+						bannerImage.src = imageSrc;
+						bannerImage.srcset = '';
 					}
+				}
+			},
+			_createParser: function() {
+				if (!this._parser) {
+					this._parser = document.createElement('d2l-siren-parser');
 				}
 			},
 			// lifted from utility-behaviour, if we cut that out we can place it here
