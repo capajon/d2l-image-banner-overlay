@@ -91,9 +91,7 @@
 				this._createParser();
 				var org = this._parser.parse(e.detail.organization);
 
-				if (!org.getLinkByRel) {
-					return;
-				}
+				if (!org.getLinkByRel) { return; }
 
 				var orgSelfLink = (org.getLinkByRel('self') || {}).href || '',
 					urlPosition = orgSelfLink.indexOf(this.organizationUrl);
@@ -103,8 +101,7 @@
 					e.detail.image
 				) {
 					var image = this._parser.parse(e.detail.image);
-					var imageLinks = this._getImageLinks(image, 'banner');
-					var imageSrc = imageLinks['highMax'] || imageLinks['lowMax'] || imageLinks['highMid'] || imageLinks['lowMid'];
+					var imageSrc = this._getDefaultImageLink(image, 'banner');
 					var bannerImage = document.querySelector('.d2l-course-banner .d2l-course-banner-image');
 					if (bannerImage && imageSrc) {
 						bannerImage.src = imageSrc;
@@ -127,7 +124,16 @@
 					sizes[density + size] = link.href;
 				});
 				return sizes;
-			}
+			},
+			// lifted from utility-behaviour, if we cut that out we can place it here
+			getDefaultImageLink: function(image, imageClass) {
+				if (!image) {
+					return;
+				}
+
+				var sizes = this._getImageLinks(image, imageClass);
+				return sizes.highMax || sizes.lowMax || sizes.highMid || sizes.lowMid || sizes.highMin || sizes.lowMin;
+			},
 		});
 	</script>
 </dom-module>
