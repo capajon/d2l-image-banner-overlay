@@ -3,6 +3,7 @@
 <link rel="import" href="../../d2l-colors/d2l-colors.html">
 <link rel="import" href="../../d2l-dropdown/d2l-dropdown.html">
 <link rel="import" href="../../d2l-dropdown/d2l-dropdown-menu.html">
+<link rel="import" href="../../d2l-loading-spinner/d2l-loading-spinner.html">
 <link rel="import" href="../../d2l-performance/d2l-performance.html">
 <link rel="import" href="../../d2l-siren-parser/d2l-siren-parser.html">
 <link rel="import" href="../../d2l-typography/d2l-typography.html">
@@ -75,6 +76,10 @@
 			#courseName {
 				margin-left: 2.439%;
 				margin-right: 2.439%;
+			}
+
+			.loading-overlay-shown d2l-dropdown {
+				display: none;
 			}
 
 			@media (min-width: 1230px) {
@@ -169,6 +174,26 @@
 			d2l-alert[hidden] {
 				display: none !important;
 			}
+
+			.loading-overlay {
+				opacity: 0;
+				height: 100%;
+				width: 100%;
+				align-items: center;
+				justify-content: center;
+				pointer-events: none;
+				position: absolute;
+				display: flex;
+				opacity: 0;
+				top: 0;
+				left: 0;
+			}
+
+			.loading-overlay-shown .loading-overlay {
+				opacity: 1;
+				transition: opacity 0.5s 0.5s;
+				background-color: rgba(0, 0, 0, 0.4);
+			}
 		</style>
 
 		<d2l-ajax auto
@@ -202,8 +227,12 @@
 					</d2l-dropdown-menu>
 				</d2l-dropdown>
 			</template>
+			<div class="loading-overlay">
+				<d2l-loading-spinner size="100"></d2l-loading-spinner>
+			</div>
 		</div>
 		<d2l-alert
+			id="optBackInAlert"
 			hidden$="[[!_showBannerRemovedAlert]]"
 			has-button="true"
 			button-message="[[localize('undo')]]"
@@ -212,6 +241,16 @@
 			role="alert"
 		>
 			<span>[[_optBackInStart]]</span><a is="d2l-link" href="[[_courseOfferingInfoLink]]">[[localize('courseOfferingInformation')]]</a><span>[[_optBackInEnd]]</span>
+		</d2l-alert>
+		<d2l-alert
+			id="errorAlert"
+			hidden$="[[!_showBannerErrorAlert]]"
+			has-close-button="true"
+			close-button-title="[[localize('closeAlert')]]"
+			role="alert"
+			type="error"
+		>
+			<span>[[_errorAlertStart]]</span><a is="d2l-link" href="javascript:window.location.reload(true)">[[localize('refreshAndTryAgain')]]</a><span>[[_errorAlertEnd]]</span>
 		</d2l-alert>
 	</template>
 	<script>
@@ -226,7 +265,10 @@
 				_optBackInStart: String, // the first portion of the localized text to display in the alert when the banner has been removed
 				_optBackInEnd: String, // the last portion of the localized text to display in the alert when the banner has been removed
 				_courseOfferingInfoLink: String, // the url to navigate to if the user wishes to adjust course offering settings, displayed in the alert when the banner has been removed
-				_showBannerRemovedAlert: Boolean // indicates if the alert should be displayed
+				_showBannerRemovedAlert: Boolean, // indicates if the optBackIn alert should be displayed
+				_showBannerErrorAlert: Boolean, // indicates if the "something went wrong alert should be displayed"
+				_errorAlertStart: String, // the first portion of the localized text to display in the alert when something went wrong with removing the banner
+				_errorAlertEnd: String // the last portion of the localized text to display in the alert when something went wrong with removing the banner
 			},
 			behaviors: [
 				window.D2L.ImageBanner.LocalizeBehavior
@@ -237,6 +279,8 @@
 			},
 			ready: function() {
 				this._addPerfMark('ready');
+				this._showBannerRemovedAlert = false;
+				this._showBannerErrorAlert = false;
 				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 			},
 			_parser: null,
@@ -263,7 +307,6 @@
 					if (this._removeBannerAction) {
 						Polymer.dom(this.$.courseName).classList.add('menu-exists');
 					}
-					this._showBannerRemovedAlert = false;
 					var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
 					this._courseOfferingInfoLink = offeringLink && offeringLink.href;
 					var placeholder = 'COURSE_OFFERING_INFORMATION';
@@ -279,6 +322,7 @@
 			},
 			_toggleCourseBanner: function() {
 				var relevantAction = this._addBannerAction || this._removeBannerAction;
+				Polymer.dom(this.$.overlayContent).classList.add('loading-overlay-shown');
 
 				if (relevantAction) {
 					this.toggleBannerRequest = this.toggleBannerRequest || document.createElement('d2l-ajax');
@@ -301,14 +345,31 @@
 
 				this._showBannerRemovedAlert = !!this._addBannerAction;
 				if (this._addBannerAction) {
+					this._showAlert(true);
+				} else if (this._removeBannerAction) {
+					this._showAlert(false);
+				}
+			},
+			_onToggleBannerError: function() {
+				this._showBannerErrorAlert = true;
+				this._removeBannerAction = null;
+				var placeholder = 'REFRESH_PAGE';
+				var splitText = this.localize('somethingWentWrong', 'placeholder', placeholder).split(placeholder);
+				this._errorAlertStart = splitText[0];
+				this._errorAlertEnd = splitText[1];
+				this._showAlert(true);
+			},
+			_showAlert: function(show) {
+				Polymer.dom(this.$.overlayContent).classList.remove('loading-overlay-shown');
+
+				if (show) {
 					Polymer.dom(this.$.overlayContent).classList.remove('d2l-image-banner-overlay-content-shown');
 					document.documentElement.querySelector('.d2l-course-banner-container').classList.add('showing-alert');
-				} else if (this._removeBannerAction) {
+				} else {
 					Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 					document.documentElement.querySelector('.d2l-course-banner-container').classList.remove('showing-alert');
 				}
 			},
-			_onToggleBannerError: function() {},
 			_onAlertButtonPressed: function(e) {
 				var normalizedEvent = Polymer.dom(e);
 				if (normalizedEvent.rootTarget === this.$$('d2l-alert')) {
@@ -317,7 +378,7 @@
 			},
 			_onAlertClosed: function(e) {
 				var normalizedEvent = Polymer.dom(e);
-				var alert = this.$$('d2l-alert');
+				var alert = this.$$('#' + normalizedEvent.rootTarget.id);
 				if (normalizedEvent.rootTarget === alert) {
 					alert.hidden = true;
 				}
