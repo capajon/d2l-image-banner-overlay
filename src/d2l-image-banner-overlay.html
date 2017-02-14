@@ -48,7 +48,7 @@
 
 			#courseName {
 				color: var(--d2l-color-white);
-				padding: 0 30px;
+				padding: 0 2.439%;
 				margin-top: 0;
     			box-sizing: border-box;
 				-webkit-line-clamp: 2;
@@ -56,6 +56,13 @@
 				display: -webkit-box;
 				overflow: hidden;
 				cursor: default;
+			}
+
+			@media (max-width: 615px) {
+				#courseName {
+					padding-left: 15px;
+					padding-right: 15px;
+				}
 			}
 
 		</style>
