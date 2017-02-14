@@ -23,6 +23,7 @@
 			}
 
 			.d2l-image-banner-overlay-content {
+				overflow: hidden;
 				opacity: 0;
 				width: 100%;
 				height: 100%;
@@ -108,6 +109,13 @@
 			.elipsis-icon {
 				color: inherit;
 			}
+
+			.d2l-image-banner-course-name-container {
+				height: 100%;
+				width: 100%;
+				overflow: hidden;
+				position: absolute;
+			}
 		</style>
 
 		<d2l-ajax auto
@@ -116,35 +124,29 @@
 			on-iron-ajax-response="_onOrganizationResponse">
 		</d2l-ajax>
 
-		<d2l-ajax
-			id="remove-ajax"
-			method="PUT"
-			body="[[_showBannerAjax]]"
-			contentType="application/x-www-form-urlencoded"
-			url="[[_removeBannerAction]]"
-			headers='{ "Accept": "application/vnd.siren+json" }'
-			on-iron-ajax-response="_onRemoveBannerResponse">
-		</d2l-ajax>
-
 		<div id="overlayContent" class="d2l-image-banner-overlay-content d2l-typography">
-			<div class="d2l-image-banner-course-name">
-				<h1 id="courseName" class="d2l-heading-1">[[_courseName]]</h1>
+			<div class="d2l-image-banner-course-name-container">
+				<div class="d2l-image-banner-course-name">
+					<h1 id="courseName" class="d2l-heading-1">[[_courseName]]</h1>
+				</div>
 			</div>
-			<d2l-dropdown>
-				<button	class="menu-item no-tap-interaction d2l-dropdown-opener" aria-label$="[[localize('bannerSettings')]]">
-					<d2l-icon class="elipsis-icon" icon="d2l-tier1:more"></d2l-icon>
-				</button>
-				<d2l-dropdown-menu id="overflow-dropdown">
-					<d2l-menu label$="[[localize('bannerSettings')]]">
-						<template is="dom-if" if="{{_removeBannerAction}}" restamp="true">
-							<d2l-menu-item id="opt-out-button"
-								text="[[localize('removeBanner')]]"
-								on-d2l-menu-item-select="_optOutOfCourseBanner">
-							</d2l-menu-item>
-						</template>
-					</d2l-menu>
-				</d2l-dropdown-menu>
-			</d2l-dropdown>
+			<template is="dom-if" if="{{_removeBannerAction}}" restamp="true">
+				<d2l-dropdown>
+					<button	class="menu-item no-tap-interaction d2l-dropdown-opener" aria-label$="[[localize('bannerSettings')]]">
+						<d2l-icon class="elipsis-icon" icon="d2l-tier1:more"></d2l-icon>
+					</button>
+					<d2l-dropdown-menu id="overflow-dropdown">
+						<d2l-menu label$="[[localize('bannerSettings')]]">
+							<template is="dom-if" if="{{_removeBannerAction}}" restamp="true">
+								<d2l-menu-item id="opt-out-button"
+									text="[[localize('removeBanner')]]"
+									on-d2l-menu-item-select="_optOutOfCourseBanner">
+								</d2l-menu-item>
+							</template>
+						</d2l-menu>
+					</d2l-dropdown-menu>
+				</d2l-dropdown>
+			</template>
 		</div>
 	</template>
 	<script>
@@ -184,17 +186,27 @@
 			},
 			_optOutOfCourseBanner: function() {
 				if (this._removeBannerAction) {
-					this.$['remove-ajax'].generateRequest();
+					this._removeBannerRequest = this._removeBannerRequest || document.createElement('d2l-ajax');
+					this._removeBannerRequest.url = this._removeBannerAction;
+					this._removeBannerRequest.method = 'PUT';
+					this._removeBannerRequest.body = this._showBannerAjax;
+					this._removeBannerRequest.onIronAjaxResponse = this._onRemoveBannerResponse;
+					this._removeBannerRequest.headers = {
+						'accept':'application/vnd.siren+json',
+						'content-type':'application/x-www-form-urlencoded'
+					};
+					this.listen(this._removeBannerRequest, 'iron-ajax-response', '_onRemoveBannerResponse');
+					this.listen(this._removeBannerRequest, 'iron-ajax-error', '_onRemoveBannerError');
+					this._removeBannerRequest.generateRequest();
 				}
 			},
 			_onRemoveBannerResponse: function(response) {
 				var organization = this._getParser().parse(response.detail.xhr.response);
-				var status = response.detail.xhr.status;
-				if (status === 200) {
-					this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
-					this._showBannerAjax = 'showCourseBanner=true';
-				}
-			}
+				this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
+				this._showBannerAjax = 'showCourseBanner=true';
+				document.documentElement.querySelector('.d2l-course-banner-container').style.display = 'none';
+			},
+			_onRemoveBannerError: function() {}
 		});
 	</script>
 </dom-module>
