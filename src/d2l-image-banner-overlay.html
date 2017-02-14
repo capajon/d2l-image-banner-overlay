@@ -1,9 +1,12 @@
 <link rel="import" href="../../polymer/polymer.html">
 <link rel="import" href="../../d2l-ajax/d2l-ajax.html">
 <link rel="import" href="../../d2l-colors/d2l-colors.html">
+<link rel="import" href="../../d2l-dropdown/d2l-dropdown.html">
+<link rel="import" href="../../d2l-dropdown/d2l-dropdown-menu.html">
 <link rel="import" href="../../d2l-siren-parser/d2l-siren-parser.html">
 <link rel="import" href="../../d2l-typography/d2l-typography.html">
 <link rel="import" href="../../d2l-typography/d2l-typography-shared-styles.html">
+<link rel="import" href="localize-behavior.html">
 
 <dom-module id="d2l-image-banner-overlay">
 	<template>
@@ -55,9 +58,40 @@
 				-webkit-box-orient: vertical;
 				display: -webkit-box;
 				overflow: hidden;
-				cursor: default;
+				pointer-events: none;
 			}
 
+			d2l-dropdown {
+				right: 0;
+				position: absolute;
+				padding: 10px;
+			}
+
+			[dir='rtl'] d2l-dropdown {
+				left: 0;
+			}
+
+			d2l-dropdown > button {
+				color: #fff;
+				background: rgba(0,0,0,.5);
+				border: none;
+				border-radius: 5px;
+				float: left;
+				transition: color .5s,background .5s;
+				cursor: pointer;
+				width: 35px;
+				height: 35px;
+			}
+
+			d2l-dropdown > button:hover,
+			d2l-dropdown > button:focus {
+				color: rgba(255,255,255,1);
+			    background: #006fbf;
+			}
+
+			.elipsis-icon {
+				color: inherit;
+			}
 		</style>
 
 		<d2l-ajax auto
@@ -66,10 +100,35 @@
 			on-iron-ajax-response="_onOrganizationResponse">
 		</d2l-ajax>
 
+		<d2l-ajax
+			id="remove-ajax"
+			method="PUT"
+			body="[[_showBannerAjax]]"
+			contentType="application/x-www-form-urlencoded"
+			url="[[_removeBannerAction]]"
+			headers='{ "Accept": "application/vnd.siren+json" }'
+			on-iron-ajax-response="_onRemoveBannerResponse">
+		</d2l-ajax>
+
 		<div id="overlayContent" class="d2l-image-banner-overlay-content d2l-typography">
 			<div class="d2l-image-banner-course-name">
 				<h1 id="courseName" class="d2l-heading-1">[[_courseName]]</h1>
 			</div>
+			<d2l-dropdown>
+				<button	class="menu-item no-tap-interaction d2l-dropdown-opener" aria-label$="[[localize('bannerSettings')]]">
+					<d2l-icon class="elipsis-icon" icon="d2l-tier1:more"></d2l-icon>
+				</button>
+				<d2l-dropdown-menu id="overflow-dropdown">
+					<d2l-menu label$="[[localize('bannerSettings')]]">
+						<template is="dom-if" if="{{_removeBannerAction}}" restamp="true">
+							<d2l-menu-item id="opt-out-button"
+								text="[[localize('removeBanner')]]"
+								on-d2l-menu-item-select="_optOutOfCourseBanner">
+							</d2l-menu-item>
+						</template>
+					</d2l-menu>
+				</d2l-dropdown-menu>
+			</d2l-dropdown>
 		</div>
 	</template>
 	<script>
@@ -78,18 +137,46 @@
 			is: 'd2l-image-banner-overlay',
 			properties: {
 				organizationUrl: String,
-				_courseName: String
+				_courseName: String,
+				_parser: Object,
+				_removeBannerAction: Function,
+				_addBannerAction: Function,
+				_showBannerAjax: String
 			},
+			behaviors: [
+				window.D2L.ImageBanner.LocalizeBehavior
+			],
 			ready: function() {
 				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 			},
+			_getParser: function() {
+				if (!this._parser) {
+					this._parser = document.createElement('d2l-siren-parser');
+				}
+				return this._parser;
+			},
 			_onOrganizationResponse: function(response) {
 				if (response.detail.status === 200) {
-					var parser = document.createElement('d2l-siren-parser');
-					var organization = parser.parse(response.detail.xhr.response);
+					var organization = this._getParser().parse(response.detail.xhr.response);
 					if (organization && organization.properties) {
 						this._courseName = organization.properties.name;
 					}
+
+					this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
+					this._showBannerAjax = 'showCourseBanner=false';
+				}
+			},
+			_optOutOfCourseBanner: function() {
+				if (this._removeBannerAction) {
+					this.$['remove-ajax'].generateRequest();
+				}
+			},
+			_onRemoveBannerResponse: function(response) {
+				var organization = this._getParser().parse(response.detail.xhr.response);
+				var status = response.detail.xhr.status;
+				if (status === 200) {
+					this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
+					this._showBannerAjax = 'showCourseBanner=true';
 				}
 			}
 		});
