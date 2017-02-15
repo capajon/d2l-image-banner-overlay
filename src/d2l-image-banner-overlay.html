@@ -130,7 +130,7 @@
 					<h1 id="courseName" class="d2l-heading-1">[[_courseName]]</h1>
 				</div>
 			</div>
-			<template is="dom-if" if="{{_removeBannerAction}}" restamp="true">
+			<template is="dom-if" if="{{_showDropdown(_removeBannerAction)}}" restamp="true">
 				<d2l-dropdown>
 					<button	class="menu-item no-tap-interaction d2l-dropdown-opener" aria-label$="[[localize('bannerSettings')]]">
 						<d2l-icon class="elipsis-icon" icon="d2l-tier1:more"></d2l-icon>
@@ -156,10 +156,7 @@
 			properties: {
 				organizationUrl: String,
 				_courseName: String,
-				_parser: Object,
-				_removeBannerAction: Function,
-				_addBannerAction: Function,
-				_showBannerAjax: String
+				_removeBannerAction: Function
 			},
 			behaviors: [
 				window.D2L.ImageBanner.LocalizeBehavior
@@ -167,11 +164,16 @@
 			ready: function() {
 				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 			},
+			_buttonShowsBanner: false,
+			_parser: null,
 			_getParser: function() {
 				if (!this._parser) {
 					this._parser = document.createElement('d2l-siren-parser');
 				}
 				return this._parser;
+			},
+			_showDropdown: function(removeBannerAction) {
+				return !!removeBannerAction;
 			},
 			_onOrganizationResponse: function(response) {
 				if (response.detail.status === 200) {
@@ -181,16 +183,15 @@
 					}
 
 					this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
-					this._showBannerAjax = 'showCourseBanner=false';
+					this._buttonShowsBanner = false;
 				}
 			},
 			_optOutOfCourseBanner: function() {
 				if (this._removeBannerAction) {
 					this._removeBannerRequest = this._removeBannerRequest || document.createElement('d2l-ajax');
-					this._removeBannerRequest.url = this._removeBannerAction;
+					this._removeBannerRequest.url = 'showCourseBanner=' + !!this._buttonShowsBanner;
 					this._removeBannerRequest.method = 'PUT';
-					this._removeBannerRequest.body = this._showBannerAjax;
-					this._removeBannerRequest.onIronAjaxResponse = this._onRemoveBannerResponse;
+					this._removeBannerRequest.body = this._getShowBannerAjax();
 					this._removeBannerRequest.headers = {
 						'accept':'application/vnd.siren+json',
 						'content-type':'application/x-www-form-urlencoded'
@@ -200,10 +201,8 @@
 					this._removeBannerRequest.generateRequest();
 				}
 			},
-			_onRemoveBannerResponse: function(response) {
-				var organization = this._getParser().parse(response.detail.xhr.response);
-				this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
-				this._showBannerAjax = 'showCourseBanner=true';
+			_onRemoveBannerResponse: function() {
+				this._buttonShowsBanner = true;
 				document.documentElement.querySelector('.d2l-course-banner-container').style.display = 'none';
 			},
 			_onRemoveBannerError: function() {}
