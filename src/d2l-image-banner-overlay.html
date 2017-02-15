@@ -189,9 +189,9 @@
 			_optOutOfCourseBanner: function() {
 				if (this._removeBannerAction) {
 					this._removeBannerRequest = this._removeBannerRequest || document.createElement('d2l-ajax');
-					this._removeBannerRequest.url = 'showCourseBanner=' + !!this._buttonShowsBanner;
+					this._removeBannerRequest.url = this._removeBannerAction;
 					this._removeBannerRequest.method = 'PUT';
-					this._removeBannerRequest.body = this._getShowBannerAjax();
+					this._removeBannerRequest.body = 'showCourseBanner=' + !!this._buttonShowsBanner;
 					this._removeBannerRequest.headers = {
 						'accept':'application/vnd.siren+json',
 						'content-type':'application/x-www-form-urlencoded'
