@@ -138,6 +138,14 @@
 				color: inherit;
 			}
 
+			.elipsis-icon-container {
+				height: 100%;
+				width: 100%;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+
 			.d2l-image-banner-course-name-container {
 				height: 100%;
 				width: 100%;
@@ -161,7 +169,9 @@
 			<template is="dom-if" if="{{_showDropdown(_removeBannerAction)}}" restamp="true">
 				<d2l-dropdown>
 					<button	class="menu-item no-tap-interaction d2l-dropdown-opener" aria-label$="[[localize('bannerSettings')]]">
-						<d2l-icon class="elipsis-icon" icon="d2l-tier1:more"></d2l-icon>
+						<div class="elipsis-icon-container">
+							<d2l-icon class="elipsis-icon" icon="d2l-tier1:more"></d2l-icon>
+						</div>
 					</button>
 					<d2l-dropdown-menu id="overflow-dropdown">
 						<d2l-menu label$="[[localize('bannerSettings')]]">
