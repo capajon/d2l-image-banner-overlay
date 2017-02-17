@@ -40,14 +40,27 @@
 				100% { opacity: 1; }
 			}
 
+			.d2l-image-banner-course-name-container {
+				background: linear-gradient(rgba(0, 0, 0, 0) 17.5%, black);
+			}
+
 			.d2l-image-banner-course-name {
 				position: absolute;
 				bottom: 0;
 				width: 100%;
-				background: linear-gradient(rgba(0, 0, 0, 0), black 200px);
-				padding-top: 3.35rem;
 				max-height: 100%;
 				transform: scale3d(1,1,1);
+			}
+
+			@supports (-webkit-line-clamp: 2) {
+				.d2l-image-banner-course-name-container {
+					background: initial;
+				}
+
+				.d2l-image-banner-course-name {
+					background: linear-gradient(rgba(0, 0, 0, 0), black 200px);
+					padding-top: 3.35rem;
+				}
 			}
 
 			#courseName {
