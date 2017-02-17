@@ -232,8 +232,8 @@
 					this._buttonShowsBanner = false;
 
 					Polymer.RenderStatus.afterNextRender(this, function() {
-						this._addPerfMark('org-response.rendered');
-						this._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered');
+						this._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
+						this._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered'); // eslint-disable-line no-invalid-this
 					});
 				}
 			},
