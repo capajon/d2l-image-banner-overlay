@@ -157,6 +157,10 @@
 			d2l-alert {
 				font-size: 1rem;
 			}
+
+			d2l-alert[hidden] {
+				display: none !important;
+			}
 		</style>
 
 		<d2l-ajax auto
@@ -300,13 +304,15 @@
 			},
 			_onToggleBannerError: function() {},
 			_onAlertButtonPressed: function(e) {
-				if (e.target === this.$$('d2l-alert')) {
+				var normalizedEvent = Polymer.dom(e);
+				if (normalizedEvent.rootTarget === this.$$('d2l-alert')) {
 					this._toggleCourseBanner();
 				}
 			},
 			_onAlertClosed: function(e) {
+				var normalizedEvent = Polymer.dom(e);
 				var alert = this.$$('d2l-alert');
-				if (e.target === alert) {
+				if (normalizedEvent.rootTarget === alert) {
 					alert.hidden = true;
 				}
 			},
