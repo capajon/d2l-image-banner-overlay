@@ -196,9 +196,10 @@
 			</template>
 		</div>
 		<d2l-alert
-			button-message="[[localize('undo')]]"
-			close-button="true"
 			hidden$="[[!_buttonShowsBanner]]"
+			has-button="true"
+			button-message="[[localize('undo')]]"
+			has-close-button="true"
 			close-button-title="[[localize('closeAlert')]]"
 			role="alert"
 		>
@@ -268,7 +269,7 @@
 					Polymer.RenderStatus.afterNextRender(this, function() {
 						this._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
 						this._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered'); // eslint-disable-line no-invalid-this
-					});				
+					});
 				}
 			},
 			_toggleCourseBanner: function() {
