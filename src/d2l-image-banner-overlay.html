@@ -196,7 +196,7 @@
 			</template>
 		</div>
 		<d2l-alert
-			hidden$="[[!_buttonShowsBanner]]"
+			hidden$="[[!_showBannerRemovedAlert]]"
 			has-button="true"
 			button-message="[[localize('undo')]]"
 			has-close-button="true"
@@ -211,13 +211,14 @@
 		Polymer({
 			is: 'd2l-image-banner-overlay',
 			properties: {
-				organizationUrl: String,
-				_courseName: String,
-				_removeBannerAction: Function,
-				_optBackInStart: String,
-				_optBackInEnd: String,
-				_courseOfferingInfoLink: String,
-				_buttonShowsBanner: Boolean
+				organizationUrl: String, // url used to request organization information
+				_courseName: String, // the name to display in the main text area of the overlay
+				_removeBannerAction: String, // a siren action to be executed when the remove banner menu option is clicked
+				_addBannerAction: String, // a siren action to be executed when the Undo option is clicked on the alert
+				_optBackInStart: String, // the first portion of the localized text to display in the alert when the banner has been removed
+				_optBackInEnd: String, // the last portion of the localized text to display in the alert when the banner has been removed
+				_courseOfferingInfoLink: String, // the url to navigate to if the user wishes to adjust course offering settings, displayed in the alert when the banner has been removed
+				_showBannerRemovedAlert: Boolean // indicates if the alert should be displayed
 			},
 			behaviors: [
 				window.D2L.ImageBanner.LocalizeBehavior
@@ -230,7 +231,6 @@
 				this._addPerfMark('ready');
 				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 			},
-			_buttonShowsBanner: false,
 			_parser: null,
 			_getParser: function() {
 				if (!this._parser) {
@@ -255,7 +255,7 @@
 					if (this._removeBannerAction) {
 						Polymer.dom(this.$.courseName).classList.add('menu-exists');
 					}
-					this._buttonShowsBanner = false;
+					this._showBannerRemovedAlert = false;
 					var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
 					this._courseOfferingInfoLink = offeringLink && offeringLink.href;
 					var placeholder = 'COURSE_OFFERING_INFORMATION';
@@ -270,13 +270,13 @@
 				}
 			},
 			_toggleCourseBanner: function() {
-				var relevantAction = this._buttonShowsBanner ? this._addBannerAction : this._removeBannerAction;
+				var relevantAction = this._addBannerAction || this._removeBannerAction;
 
 				if (relevantAction) {
 					this.toggleBannerRequest = this.toggleBannerRequest || document.createElement('d2l-ajax');
 					this.toggleBannerRequest.url = relevantAction;
 					this.toggleBannerRequest.method = 'PUT';
-					this.toggleBannerRequest.body = 'showCourseBanner=' + !!this._buttonShowsBanner;
+					this.toggleBannerRequest.body = 'showCourseBanner=' + (relevantAction === this._addBannerAction);
 					this.toggleBannerRequest.headers = {
 						'accept':'application/vnd.siren+json',
 						'content-type':'application/x-www-form-urlencoded'
@@ -291,7 +291,7 @@
 				this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
 				this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
 
-				this._buttonShowsBanner = !!this._addBannerAction;
+				this._showBannerRemovedAlert = !!this._addBannerAction;
 				if (this._addBannerAction) {
 					Polymer.dom(this.$.overlayContent).classList.remove('d2l-image-banner-overlay-content-shown');
 					document.documentElement.querySelector('.d2l-course-banner-container').classList.add('showing-alert');
