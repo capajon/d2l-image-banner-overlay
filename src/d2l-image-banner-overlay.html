@@ -159,6 +159,15 @@
 				width: 100%;
 				overflow: hidden;
 				position: absolute;
+				pointer-events: none;
+			}
+
+			d2l-alert {
+				font-size: 1rem;
+			}
+
+			d2l-alert[hidden] {
+				display: none !important;
 			}
 		</style>
 
@@ -186,7 +195,7 @@
 							<template is="dom-if" if="{{_removeBannerAction}}" restamp="true">
 								<d2l-menu-item id="opt-out-button"
 									text="[[localize('removeBanner')]]"
-									on-d2l-menu-item-select="_optOutOfCourseBanner">
+									on-d2l-menu-item-select="_toggleCourseBanner">
 								</d2l-menu-item>
 							</template>
 						</d2l-menu>
@@ -194,24 +203,42 @@
 				</d2l-dropdown>
 			</template>
 		</div>
+		<d2l-alert
+			hidden$="[[!_showBannerRemovedAlert]]"
+			has-button="true"
+			button-message="[[localize('undo')]]"
+			has-close-button="true"
+			close-button-title="[[localize('closeAlert')]]"
+			role="alert"
+		>
+			<span>[[_optBackInStart]]</span><a is="d2l-link" href="[[_courseOfferingInfoLink]]">[[localize('courseOfferingInformation')]]</a><span>[[_optBackInEnd]]</span>
+		</d2l-alert>
 	</template>
 	<script>
 		'use strict';
 		Polymer({
 			is: 'd2l-image-banner-overlay',
 			properties: {
-				organizationUrl: String,
-				_courseName: String,
-				_removeBannerAction: Function
+				organizationUrl: String, // url used to request organization information
+				_courseName: String, // the name to display in the main text area of the overlay
+				_removeBannerAction: String, // a siren action to be executed when the remove banner menu option is clicked
+				_addBannerAction: String, // a siren action to be executed when the Undo option is clicked on the alert
+				_optBackInStart: String, // the first portion of the localized text to display in the alert when the banner has been removed
+				_optBackInEnd: String, // the last portion of the localized text to display in the alert when the banner has been removed
+				_courseOfferingInfoLink: String, // the url to navigate to if the user wishes to adjust course offering settings, displayed in the alert when the banner has been removed
+				_showBannerRemovedAlert: Boolean // indicates if the alert should be displayed
 			},
 			behaviors: [
 				window.D2L.ImageBanner.LocalizeBehavior
 			],
+			listeners: {
+				'alert-button-pressed': '_onAlertButtonPressed',
+				'alert-closed': '_onAlertClosed'
+			},
 			ready: function() {
 				this._addPerfMark('ready');
 				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
 			},
-			_buttonShowsBanner: false,
 			_parser: null,
 			_getParser: function() {
 				if (!this._parser) {
@@ -236,7 +263,13 @@
 					if (this._removeBannerAction) {
 						Polymer.dom(this.$.courseName).classList.add('menu-exists');
 					}
-					this._buttonShowsBanner = false;
+					this._showBannerRemovedAlert = false;
+					var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
+					this._courseOfferingInfoLink = offeringLink && offeringLink.href;
+					var placeholder = 'COURSE_OFFERING_INFORMATION';
+					var splitText = this.localize('bannerRemoved', 'placeholder', placeholder).split(placeholder);
+					this._optBackInStart = splitText[0];
+					this._optBackInEnd = splitText[1];
 
 					Polymer.RenderStatus.afterNextRender(this, function() {
 						this._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
@@ -244,26 +277,51 @@
 					});
 				}
 			},
-			_optOutOfCourseBanner: function() {
-				if (this._removeBannerAction) {
-					this._removeBannerRequest = this._removeBannerRequest || document.createElement('d2l-ajax');
-					this._removeBannerRequest.url = this._removeBannerAction;
-					this._removeBannerRequest.method = 'PUT';
-					this._removeBannerRequest.body = 'showCourseBanner=' + !!this._buttonShowsBanner;
-					this._removeBannerRequest.headers = {
+			_toggleCourseBanner: function() {
+				var relevantAction = this._addBannerAction || this._removeBannerAction;
+
+				if (relevantAction) {
+					this.toggleBannerRequest = this.toggleBannerRequest || document.createElement('d2l-ajax');
+					this.toggleBannerRequest.url = relevantAction;
+					this.toggleBannerRequest.method = 'PUT';
+					this.toggleBannerRequest.body = 'showCourseBanner=' + (relevantAction === this._addBannerAction);
+					this.toggleBannerRequest.headers = {
 						'accept':'application/vnd.siren+json',
 						'content-type':'application/x-www-form-urlencoded'
 					};
-					this.listen(this._removeBannerRequest, 'iron-ajax-response', '_onRemoveBannerResponse');
-					this.listen(this._removeBannerRequest, 'iron-ajax-error', '_onRemoveBannerError');
-					this._removeBannerRequest.generateRequest();
+					this.listen(this.toggleBannerRequest, 'iron-ajax-response', '_onToggleBannerResponse');
+					this.listen(this.toggleBannerRequest, 'iron-ajax-error', '_onToggleBannerError');
+					this.toggleBannerRequest.generateRequest();
 				}
 			},
-			_onRemoveBannerResponse: function() {
-				this._buttonShowsBanner = true;
-				document.documentElement.querySelector('.d2l-course-banner-container').style.display = 'none';
+			_onToggleBannerResponse: function(response) {
+				var organization = this._getParser().parse(response.detail.xhr.response) || {};
+				this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
+				this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
+
+				this._showBannerRemovedAlert = !!this._addBannerAction;
+				if (this._addBannerAction) {
+					Polymer.dom(this.$.overlayContent).classList.remove('d2l-image-banner-overlay-content-shown');
+					document.documentElement.querySelector('.d2l-course-banner-container').classList.add('showing-alert');
+				} else if (this._removeBannerAction) {
+					Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
+					document.documentElement.querySelector('.d2l-course-banner-container').classList.remove('showing-alert');
+				}
 			},
-			_onRemoveBannerError: function() {},
+			_onToggleBannerError: function() {},
+			_onAlertButtonPressed: function(e) {
+				var normalizedEvent = Polymer.dom(e);
+				if (normalizedEvent.rootTarget === this.$$('d2l-alert')) {
+					this._toggleCourseBanner();
+				}
+			},
+			_onAlertClosed: function(e) {
+				var normalizedEvent = Polymer.dom(e);
+				var alert = this.$$('d2l-alert');
+				if (normalizedEvent.rootTarget === alert) {
+					alert.hidden = true;
+				}
+			},
 			_addPerfMark: function(name) {
 				D2L.Performance.mark('d2l.image-banner-overlay.' + name);
 			},
