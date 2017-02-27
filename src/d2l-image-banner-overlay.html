@@ -100,7 +100,7 @@
 						iconName: ''
 					}
 				},
-				_nextImage: Object, // when changing the banner image, the next image to show
+				_nextImage: Object // when changing the banner image, the next image to show
 			},
 			behaviors: [
 				window.D2L.ImageBanner.LocalizeBehavior,
@@ -124,8 +124,6 @@
 
 				var orgSelfLink = (org.getLinkByRel('self') || {}).href || '',
 					urlPosition = orgSelfLink.indexOf(this.organizationUrl);
-
-				console.log(e.detail.status);
 
 				if (urlPosition === (orgSelfLink.length - this.organizationUrl.length)) {
 					switch (e.detail.status) {
