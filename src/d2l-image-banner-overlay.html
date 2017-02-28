@@ -129,9 +129,7 @@
 					switch (e.detail.status) {
 						case 'set':
 							if (e.detail.image) {
-								var newImageHref = this.getDefaultImageLink(e.detail.image);//,
-								//	newSrcset = this.getImageSrcset(e.detail.image);
-
+								var newImageHref = this._getDefaultImageLink(e.detail.image);
 								var overlayContent = this.$.overlayContent;
 								this.toggleClass('change-image-loading', true, overlayContent);
 								// load the image while the loading spinner runs to that we have it when the spinner ends
@@ -139,8 +137,6 @@
 								this._nextImage = e.detail.image;
 								var imagePreloader = document.createElement('img');
 								imagePreloader.setAttribute('src', newImageHref);
-								// imagePreloader.setAttribute('srcset', newSrcset);
-								//imagePreloader.setAttribute('sizes', this.$$('d2l-course-image').getTileSizes());
 							}
 							break;
 						case 'success':
@@ -178,12 +174,15 @@
 			},
 			_setBannerImage: function(image) {
 				var bannerImage = document.querySelector('.d2l-course-banner .d2l-course-banner-image');
-				var imageSrc = this.getDefaultImageLink(image, 'wide');
+				var imageSrc = this._getDefaultImageLink(image);
 
 				if (bannerImage && imageSrc) {
 					bannerImage.src = imageSrc;
 					bannerImage.srcset = '';
 				}
+			},
+			_getDefaultImageLink: function(image) {
+				 return this.getDefaultImageLink(image, 'wide');
 			},
 			_parser: null,
 			_getParser: function() {
