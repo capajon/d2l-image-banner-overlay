@@ -8,7 +8,6 @@
 <link rel="import" href="../../d2l-loading-spinner/d2l-loading-spinner.html">
 <link rel="import" href="../../d2l-organization-hm-behavior/d2l-organization-hm-behavior.html">
 <link rel="import" href="../../d2l-performance/d2l-performance.html">
-<link rel="import" href="../../d2l-siren-parser/d2l-siren-parser.html">
 <link rel="import" href="d2l-image-banner-overlay-styles.html">
 <link rel="import" href="localize-behavior.html">
 
@@ -76,6 +75,7 @@
 			<span>[[_errorAlertStart]]</span><a is="d2l-link" href="javascript:window.location.reload(true)">[[localize('refreshAndTryAgain')]]</a><span>[[_errorAlertEnd]]</span>
 		</d2l-alert>
 	</template>
+	<script src="https://s.brightspace.com/lib/siren-parser/6.0.0/siren-parser.js"></script>
 	<script>
 		'use strict';
 		Polymer({
@@ -118,8 +118,7 @@
 				document.body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
 			},
 			_onSetCourseImage: function(e) {
-				var parser = this._getParser();
-				var org = parser.parse(e.detail.organization);
+				var org = this._parseSiren(e.detail.organization);
 				if (!org.getLinkByRel) { return; }
 
 				var orgSelfLink = (org.getLinkByRel('self') || {}).href || '',
@@ -184,19 +183,15 @@
 			_getDefaultImageLink: function(image) {
 				return this.getDefaultImageLink(image, 'wide');
 			},
-			_parser: null,
-			_getParser: function() {
-				if (!this._parser) {
-					this._parser = document.createElement('d2l-siren-parser');
-				}
-				return this._parser;
+			_parseSiren: function(entity) {
+				return window.D2L.Hypermedia.Siren.Parse(entity);
 			},
 			_showDropdown: function(removeBannerAction) {
 				return !!removeBannerAction;
 			},
 			_onOrganizationResponse: function(response) {
 				if (response.detail.status === 200) {
-					var organization = this._getParser().parse(response.detail.xhr.response);
+					var organization = this._parseSiren(response.detail.xhr.response);
 					this._addPerfMark('org-response.parsed');
 					this._addPerfMeasure('ready-to-org-response-parsed', 'ready', 'org-response.parsed');
 
@@ -240,7 +235,7 @@
 				}
 			},
 			_onToggleBannerResponse: function(response) {
-				var organization = this._getParser().parse(response.detail.xhr.response) || {};
+				var organization = this._parseSiren(response.detail.xhr.response) || {};
 				this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
 				this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
 
