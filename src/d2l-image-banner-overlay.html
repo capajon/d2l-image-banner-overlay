@@ -105,21 +105,20 @@
 				'alert-closed': '_onAlertClosed'
 			},
 			ready: function() {
-				var self = this;
-				self._addPerfMark('ready');
-				self._showBannerRemovedAlert = false;
-				self._showBannerErrorAlert = false;
-				Polymer.dom(self.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
-				document.body.addEventListener('set-course-image', self._onSetCourseImage.bind(this));
+				this._addPerfMark('ready');
+				this._showBannerRemovedAlert = false;
+				this._showBannerErrorAlert = false;
+				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
+				document.body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
 
 				window.d2lauthify
-					.fetch(new Request(self.organizationUrl,
+					.fetch(new Request(this.organizationUrl,
 					{
 						headers: new Headers({
 							Accept: 'application/vnd.siren+json'
 						})
 					}))
-					.then(self._onOrganizationResponse.bind(self));
+					.then(this._onOrganizationResponse.bind(this));
 			},
 			_onSetCourseImage: function(e) {
 				var org = this._parseSiren(e.detail.organization);
@@ -195,40 +194,42 @@
 			},
 			_onOrganizationResponse: function(response) {
 				var self = this;
-				if (response.ok) {
-					response
-						.json()
-						.then(function(bodyAsJson) {
-							var organization = self._parseSiren(bodyAsJson);
-							self._addPerfMark('org-response.parsed');
-							self._addPerfMeasure('ready-to-org-response-parsed', 'ready', 'org-response.parsed');
 
-							if (organization && organization.properties) {
-								self._courseName = organization.properties.name;
-							}
-
-							self._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
-							if (self._removeBannerAction) {
-								Polymer.dom(self.$.courseName).classList.add('menu-exists');
-							}
-							var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
-							self._courseOfferingInfoLink = offeringLink && offeringLink.href;
-							var placeholder = 'COURSE_OFFERING_INFORMATION';
-							var splitText = self.localize('bannerRemoved', 'placeholder', placeholder).split(placeholder);
-							self._optBackInStart = splitText[0];
-							self._optBackInEnd = splitText[1];
-
-							Polymer.RenderStatus.afterNextRender(self, function() {
-								self._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
-								self._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered'); // eslint-disable-line no-invalid-this
-							});
-						});
+				if (!response.ok) {
+					return;
 				}
+
+				response
+					.json()
+					.then(function(bodyAsJson) {
+						var organization = self._parseSiren(bodyAsJson);
+						self._addPerfMark('org-response.parsed');
+						self._addPerfMeasure('ready-to-org-response-parsed', 'ready', 'org-response.parsed');
+
+						if (organization && organization.properties) {
+							self._courseName = organization.properties.name;
+						}
+
+						self._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
+						if (self._removeBannerAction) {
+							Polymer.dom(self.$.courseName).classList.add('menu-exists');
+						}
+						var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
+						self._courseOfferingInfoLink = offeringLink && offeringLink.href;
+						var placeholder = 'COURSE_OFFERING_INFORMATION';
+						var splitText = self.localize('bannerRemoved', 'placeholder', placeholder).split(placeholder);
+						self._optBackInStart = splitText[0];
+						self._optBackInEnd = splitText[1];
+
+						Polymer.RenderStatus.afterNextRender(self, function() {
+							self._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
+							self._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered'); // eslint-disable-line no-invalid-this
+						});
+					});
 			},
 			_toggleCourseBanner: function() {
-				var self = this;
-				var relevantAction = self._addBannerAction || self._removeBannerAction;
-				Polymer.dom(self.$.overlayContent).classList.add('loading-overlay-shown');
+				var relevantAction = this._addBannerAction || this._removeBannerAction;
+				Polymer.dom(this.$.overlayContent).classList.add('loading-overlay-shown');
 
 				if (relevantAction) {
 					window.d2lauthify
@@ -238,10 +239,10 @@
 								Accept: 'application/vnd.siren+json',
 								'Content-Type': 'application/x-www-form-urlencoded'
 							}),
-							body: 'showCourseBanner=' + (relevantAction === self._addBannerAction)
+							body: 'showCourseBanner=' + (relevantAction === this._addBannerAction)
 						}))
-						.then(self._onToggleBannerResponse.bind(self))
-						.catch(self._onToggleBannerError.bind(self));
+						.then(this._onToggleBannerResponse.bind(this))
+						.catch(this._onToggleBannerError.bind(this));
 				}
 			},
 			_onToggleBannerResponse: function(response) {
