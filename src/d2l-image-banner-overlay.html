@@ -1,6 +1,6 @@
 <link rel="import" href="../../polymer/polymer.html">
-<link rel="import" href="../../d2l-ajax/d2l-ajax.html">
 <link rel="import" href="../../d2l-alert/d2l-alert.html">
+<link rel="import" href="../../d2l-authify-import/d2l-authify.html">
 <link rel="import" href="../../d2l-colors/d2l-colors.html">
 <link rel="import" href="../../d2l-dropdown/d2l-dropdown.html">
 <link rel="import" href="../../d2l-dropdown/d2l-dropdown-menu.html">
@@ -14,12 +14,6 @@
 <dom-module id="d2l-image-banner-overlay">
 	<template>
 		<style include="d2l-image-banner-overlay-styles"></style>
-
-		<d2l-ajax auto
-			url="[[organizationUrl]]"
-			headers='{ "Accept": "application/vnd.siren+json" }'
-			on-iron-ajax-response="_onOrganizationResponse">
-		</d2l-ajax>
 
 		<div id="overlayContent" class="d2l-image-banner-overlay-content">
 			<div class="d2l-image-banner-course-name-container">
@@ -111,11 +105,21 @@
 				'alert-closed': '_onAlertClosed'
 			},
 			ready: function() {
-				this._addPerfMark('ready');
-				this._showBannerRemovedAlert = false;
-				this._showBannerErrorAlert = false;
-				Polymer.dom(this.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
-				document.body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
+				var self = this;
+				self._addPerfMark('ready');
+				self._showBannerRemovedAlert = false;
+				self._showBannerErrorAlert = false;
+				Polymer.dom(self.$.overlayContent).classList.add('d2l-image-banner-overlay-content-shown');
+				document.body.addEventListener('set-course-image', self._onSetCourseImage.bind(this));
+
+				window.d2lauthify
+					.fetch(new Request(self.organizationUrl,
+					{
+						headers: new Headers({
+							Accept: 'application/vnd.siren+json'
+						})
+					}))
+					.then(self._onOrganizationResponse.bind(self));
 			},
 			_onSetCourseImage: function(e) {
 				var org = this._parseSiren(e.detail.organization);
@@ -190,63 +194,78 @@
 				return !!removeBannerAction;
 			},
 			_onOrganizationResponse: function(response) {
-				if (response.detail.status === 200) {
-					var organization = this._parseSiren(response.detail.xhr.response);
-					this._addPerfMark('org-response.parsed');
-					this._addPerfMeasure('ready-to-org-response-parsed', 'ready', 'org-response.parsed');
+				var self = this;
+				if (response.ok) {
+					response
+						.json()
+						.then(function(bodyAsJson) {
+							var organization = self._parseSiren(bodyAsJson);
+							self._addPerfMark('org-response.parsed');
+							self._addPerfMeasure('ready-to-org-response-parsed', 'ready', 'org-response.parsed');
 
-					if (organization && organization.properties) {
-						this._courseName = organization.properties.name;
-					}
+							if (organization && organization.properties) {
+								self._courseName = organization.properties.name;
+							}
 
-					this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
-					if (this._removeBannerAction) {
-						Polymer.dom(this.$.courseName).classList.add('menu-exists');
-					}
-					var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
-					this._courseOfferingInfoLink = offeringLink && offeringLink.href;
-					var placeholder = 'COURSE_OFFERING_INFORMATION';
-					var splitText = this.localize('bannerRemoved', 'placeholder', placeholder).split(placeholder);
-					this._optBackInStart = splitText[0];
-					this._optBackInEnd = splitText[1];
+							self._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
+							if (self._removeBannerAction) {
+								Polymer.dom(self.$.courseName).classList.add('menu-exists');
+							}
+							var offeringLink = organization && organization.getLinkByRel(/course-offering-info-page/);
+							self._courseOfferingInfoLink = offeringLink && offeringLink.href;
+							var placeholder = 'COURSE_OFFERING_INFORMATION';
+							var splitText = self.localize('bannerRemoved', 'placeholder', placeholder).split(placeholder);
+							self._optBackInStart = splitText[0];
+							self._optBackInEnd = splitText[1];
 
-					Polymer.RenderStatus.afterNextRender(this, function() {
-						this._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
-						this._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered'); // eslint-disable-line no-invalid-this
-					});
+							Polymer.RenderStatus.afterNextRender(self, function() {
+								self._addPerfMark('org-response.rendered'); // eslint-disable-line no-invalid-this
+								self._addPerfMeasure('ready-to-org-response-displayed', 'ready', 'org-response.rendered'); // eslint-disable-line no-invalid-this
+							});
+						});
 				}
 			},
 			_toggleCourseBanner: function() {
-				var relevantAction = this._addBannerAction || this._removeBannerAction;
-				Polymer.dom(this.$.overlayContent).classList.add('loading-overlay-shown');
+				var self = this;
+				var relevantAction = self._addBannerAction || self._removeBannerAction;
+				Polymer.dom(self.$.overlayContent).classList.add('loading-overlay-shown');
 
 				if (relevantAction) {
-					this.toggleBannerRequest = this.toggleBannerRequest || document.createElement('d2l-ajax');
-					this.toggleBannerRequest.url = relevantAction;
-					this.toggleBannerRequest.method = 'PUT';
-					this.toggleBannerRequest.body = 'showCourseBanner=' + (relevantAction === this._addBannerAction);
-					this.toggleBannerRequest.headers = {
-						'accept':'application/vnd.siren+json',
-						'content-type':'application/x-www-form-urlencoded'
-					};
-					this.listen(this.toggleBannerRequest, 'iron-ajax-response', '_onToggleBannerResponse');
-					this.listen(this.toggleBannerRequest, 'iron-ajax-error', '_onToggleBannerError');
-					this.toggleBannerRequest.generateRequest();
+					window.d2lauthify
+						.fetch(new Request(relevantAction, {
+							method: 'PUT',
+							headers: new Headers({
+								Accept: 'application/vnd.siren+json',
+								'Content-Type': 'application/x-www-form-urlencoded'
+							}),
+							body: 'showCourseBanner=' + (relevantAction === self._addBannerAction)
+						}))
+						.then(self._onToggleBannerResponse.bind(self))
+						.catch(self._onToggleBannerError.bind(self));
 				}
 			},
 			_onToggleBannerResponse: function(response) {
-				var organization = this._parseSiren(response.detail.xhr.response) || {};
-				this._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
-				this._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
-
-				this._showBannerRemovedAlert = !!this._addBannerAction;
-				if (this._addBannerAction) {
-					this._showAlert(true);
-				} else if (this._removeBannerAction) {
-					this._showAlert(false);
+				var self = this;
+				if (!response.ok) {
+					return Promise.reject(response.status + response.statusText);
 				}
+
+				return response
+					.json()
+					.then(function(bodyAsJson) {
+						var organization = self._parseSiren(bodyAsJson) || {};
+						self._addBannerAction = (organization.getActionByName('add-homepage-banner') || {}).href;
+						self._removeBannerAction = (organization.getActionByName('remove-homepage-banner') || {}).href;
+
+						self._showBannerRemovedAlert = !!self._addBannerAction;
+						if (self._addBannerAction) {
+							self._showAlert(true);
+						} else if (self._removeBannerAction) {
+							self._showAlert(false);
+						}
+					});
 			},
-			_onToggleBannerError: function() {
+			_onToggleBannerError: function(err) {
 				this._showBannerErrorAlert = true;
 				this._removeBannerAction = null;
 				var placeholder = 'REFRESH_PAGE';
