@@ -112,8 +112,7 @@
 				document.body.addEventListener('set-course-image', this._onSetCourseImage.bind(this));
 
 				window.d2lauthify
-					.fetch(new Request(this.organizationUrl,
-					{
+					.fetch(new Request(this.organizationUrl, {
 						headers: new Headers({
 							Accept: 'application/vnd.siren+json'
 						})
@@ -266,7 +265,7 @@
 						}
 					});
 			},
-			_onToggleBannerError: function(err) {
+			_onToggleBannerError: function() {
 				this._showBannerErrorAlert = true;
 				this._removeBannerAction = null;
 				var placeholder = 'REFRESH_PAGE';
