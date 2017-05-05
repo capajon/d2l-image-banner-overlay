@@ -39,8 +39,10 @@
     "d2l-menu": "^0.3.0",
     "d2l-offscreen": "^2.2.2",
     "d2l-organization-hm-behavior": "git://github.com/Brightspace/organization-hm-behavior.git#~1.0.0",
+    "d2l-performance": "^0.0.4",
     "d2l-polymer-behaviors": "<1.0.0",
     "d2l-typography": "^5.3.0",
+    "fetch": "^2.0.3",
     "iron-a11y-announcer": "^1.0.5",
     "iron-a11y-keys": "^1.0.6",
     "iron-input": "^1.0.10",
@@ -49,6 +51,6 @@
     "iron-scroll-threshold": "PolymerElements/iron-scroll-threshold#^1.0.2",
     "iron-pages": "^1.0.8",
     "polymer": "^1.7.0",
-    "d2l-performance": "^0.0.4"
+    "promise-polyfill": "PolymerLabs/promise-polyfill#^1.0.1"
   }
 }
